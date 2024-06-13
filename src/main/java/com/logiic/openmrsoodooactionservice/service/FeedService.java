@@ -2,15 +2,12 @@ package com.logiic.openmrsoodooactionservice.service;
 
 import com.logiic.openmrsoodooactionservice.model.Event;
 import com.logiic.openmrsoodooactionservice.repository.EventRepository;
-import com.logiic.openmrsoodooactionservice.service.ActionService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.support.GeneratedKeyHolder;
-import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Service;
 
-import java.sql.PreparedStatement;
 import java.sql.Timestamp;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -80,6 +77,9 @@ public class FeedService {
                 break;
             case "admission":
                 actionService.executeAction("HandleAdmissionAction", eventData, eventId);
+                break;
+            case "order":
+                actionService.executeAction("HandleOrderAction", eventData, eventId);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown feed type: " + feedType);

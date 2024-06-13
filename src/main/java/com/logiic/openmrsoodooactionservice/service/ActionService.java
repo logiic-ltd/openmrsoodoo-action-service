@@ -1,9 +1,10 @@
 package com.logiic.openmrsoodooactionservice.service;
 
+import com.logiic.openmrsoodooactionservice.action.ActionInterface;
 import com.logiic.openmrsoodooactionservice.model.Action;
 import com.logiic.openmrsoodooactionservice.model.Criteria;
+import com.logiic.openmrsoodooactionservice.repository.ActionRepository;
 import com.logiic.openmrsoodooactionservice.repository.CriteriaRepository;
-import com.logiic.openmrsoodooactionservice.service.ExecutionLogService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -17,32 +18,36 @@ import java.util.Map;
 @Service
 public class ActionService {
 
-    private final Map<String, Action> actions = new HashMap<>();
+    private final Map<String, ActionInterface> actionInterfaces = new HashMap<>();
+    private final ActionRepository actionRepository;
     private final CriteriaRepository criteriaRepository;
     private final ExecutionLogService executionLogService;
 
     @Autowired
-    public ActionService(List<Action> actionList, CriteriaRepository criteriaRepository, ExecutionLogService executionLogService) {
-        for (Action action : actionList) {
-            actions.put(action.getClass().getSimpleName(), action);
+    public ActionService(List<ActionInterface> actionList, ActionRepository actionRepository, CriteriaRepository criteriaRepository, ExecutionLogService executionLogService) {
+        for (ActionInterface action : actionList) {
+            actionInterfaces.put(action.getClass().getSimpleName(), action);
         }
+        this.actionRepository = actionRepository;
         this.criteriaRepository = criteriaRepository;
         this.executionLogService = executionLogService;
     }
 
     public void executeAction(String actionName, Map<String, Object> data, int eventId) throws Exception {
-        Action action = actions.get(actionName);
-        if (action != null) {
+        Action action = actionRepository.findByName(actionName)
+                .orElseThrow(() -> new IllegalArgumentException("No such action: " + actionName));
+        ActionInterface actionInterface = actionInterfaces.get(actionName);
+        if (actionInterface != null) {
             List<Criteria> criteriaList = criteriaRepository.findByActionId(action.getId());
             boolean shouldExecute = evaluateCriteria(criteriaList, data);
             if (shouldExecute) {
-                action.execute(data);
+                actionInterface.execute(data);
                 executionLogService.logExecution(action.getId(), eventId, "Success", "Action executed successfully");
             } else {
                 executionLogService.logExecution(action.getId(), eventId, "Skipped", "Criteria not met");
             }
         } else {
-            throw new IllegalArgumentException("No such action: " + actionName);
+            throw new IllegalArgumentException("No such action interface: " + actionName);
         }
     }
 
